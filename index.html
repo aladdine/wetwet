@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="js/jquery-2.1.4.min.js"></script>
+</head>
+<body>
+<p>Please enter zip code:</p>
+<input type="address" id="zipinput" placeholder="zip code">
+<button onclick="getLocation()">Use current zipcode</button>
+<button onclick="score()">Run Score </button>
+
+<p id="score"></p>
+
+<script>
+var result = document.getElementById("score");
+
+meterMap = ["wet.png","dry.png","dry-mod.png","mod.png","mod-sev.png","sev.png","sev-ext.png","ext.png","ext-exc.png","exc.png"];
+
+function getLocation() {
+	result.innerHTML = "<img src='images/loader.gif'>";
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition);
+    } else { 
+        result.innerHTML = "Geolocation is not supported by this browser.";
+    }
+}
+
+function showPosition(position) {
+	 goecordurl = "http://api.wunderground.com/api/e5e4f9b45b89821b/geolookup/q/" + position.coords.latitude + "," + position.coords.longitude + ".json";  
+     console.log("lat=" + position.coords.latitude);
+     console.log("lon=" + position.coords.longitude);
+	 $.ajax({
+        url: goecordurl
+    }).then(function(data) {
+      $("input[type=address]").val(data.location.zip );
+     result.innerHTML = "";
+    });
+}
+
+function score() {
+	result.innerHTML = "<img src='images/loader.gif'>";
+	if ($("input[type=address]").val()=="") {
+		result.innerHTML = "Please fill in the zip code field first";
+	} else {
+		
+		
+		zip = $("input[type=address]").val();
+		
+
+		ziptocityurl = "http://api.wunderground.com/api/e5e4f9b45b89821b/geolookup/q/"+zip+".json";
+		$.ajax({
+	        url: ziptocityurl
+	    }).then(function(data) {
+	    	console.log(data);
+	    	result.innerHTML = "Location: " + data.location.city + ", " + data.location.state + ", " + data.location.country_name + "<br>";
+        }); 
+
+		console.log("zip= " + zip);
+		droughturl = "http://www.drought.gov/snapshot/zip?zip=" + zip;
+	    $.ajax({
+	        url: droughturl
+	    }).then(function(data) {
+	      console.log(data.data);
+	      result.innerHTML += "Water Crisis Score in your area: " + data.data.dm + " <br> " + "<img width='300px' src='images/"+meterMap[data.data.image]+"'> <br>";
+	      result.innerHTML += "Your WetWet score will start at : " + (Number(data.data.image)+ 1.0) + "/" + meterMap.length + "<br>";
+	      result.innerHTML += "<a href='#'>Start shopping for Walmart</a> || <a href='#'>Start shopping for Zalando</a>"; 
+	    });
+	}
+}
+</script>
+<div id="snapshot"></div>
+
+</body>
+</html>
