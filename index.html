@@ -2,16 +2,54 @@
 <html>
 <head>
 	<script src="js/jquery-2.1.4.min.js"></script>
+	<link rel="stylesheet" href="http://js.arcgis.com/3.14/dijit/themes/tundra/tundra.css">
+    <link rel="stylesheet" href="http://js.arcgis.com/3.14/esri/css/esri.css">
+    <style>
+    #map {
+         height: 400px;
+         width: 400px;
+         margin: 0;
+         padding: 0;
+      }
+      .shadow {
+         box-shadow: 0 0 5px #888;
+      }
+      #map {
+         margin: 0;
+         padding: 0;
+      }
+      #feedback {
+         background: #fff;
+         color: #444;
+         position: absolute;
+         font-family: arial;
+         height: 125px;
+         right: 50px;
+         margin: 5px;
+         padding: 10px;
+         top: 10px;
+         width: 190px;
+         z-index: 40;
+      }
+      #note {
+         font-size: 80%;
+         font-weight: 700;
+         padding: 0 0 10px 0;
+      }
+   </style>
+   <script src="http://js.arcgis.com/3.14/"></script>
+
 </head>
 <body>
 <p>Please enter zip code:</p>
-<input type="address" id="zipinput" placeholder="zip code">
+<input type="address" id="zipinput" value="94040" placeholder="zip code">
 <button onclick="getLocation()">Use current zipcode</button>
-<button onclick="score()">Run Score </button>
+<button id="searchValue" data-dojo-type="dijit/form/Button" onclick="score()" >Run Score </button>
 
 <p id="score"></p>
 
 <script>
+
 var result = document.getElementById("score");
 
 meterMap = ["wet.png","dry.png","dry-mod.png","mod.png","mod-sev.png","sev.png","sev-ext.png","ext.png","ext-exc.png","exc.png"];
@@ -53,6 +91,9 @@ function score() {
 	    }).then(function(data) {
 	    	console.log(data);
 	    	result.innerHTML = "Location: " + data.location.city + ", " + data.location.state + ", " + data.location.country_name + "<br>";
+	    	user_city = data.location.city + ", " + data.location.state;
+
+	    	
         }); 
 
 		console.log("zip= " + zip);
@@ -60,15 +101,98 @@ function score() {
 	    $.ajax({
 	        url: droughturl
 	    }).then(function(data) {
-	      console.log(data.data);
+	      console.log(data.data.error);
+	      
 	      result.innerHTML += "Water Crisis Score in your area: " + data.data.dm + " <br> " + "<img width='300px' src='images/"+meterMap[data.data.image]+"'> <br>";
 	      result.innerHTML += "Your WetWet score will start at : " + (Number(data.data.image)+ 1.0) + "/" + meterMap.length + "<br>";
 	      result.innerHTML += "<a href='#'>Start shopping for Walmart</a> || <a href='#'>Start shopping for Zalando</a>"; 
+
+	      require([
+        "esri/map",
+        "esri/dijit/Search",
+        "esri/symbols/Font",
+        "esri/geometry/Point",
+        "esri/SpatialReference",
+         "esri/symbols/SimpleMarkerSymbol",
+        "esri/symbols/PictureMarkerSymbol",
+         "esri/symbols/SimpleLineSymbol",
+        "esri/Color",
+        "esri/symbols/TextSymbol",
+
+        "dijit/registry",
+        "dijit/form/Button",
+        "dojo/parser",
+        "dijit/layout/BorderContainer",
+        "dijit/layout/ContentPane",
+        "dojo/domReady!"
+      ], function (
+            Map, Search, Font, Point, SpatialReference, SimpleMarkerSymbol, PictureMarkerSymbol, SimpleLineSymbol, Color, TextSymbol, registry, Button, parser)
+
+         {
+            parser.parse();
+
+            var map = new Map("map", {
+               basemap: "gray",
+               center: [-100, 39], // lon, lat
+               zoom: 5
+            });
+
+            //Do not provide a srcNode dom for the Search widget as the UI is not displayed. 
+
+
+            var s = new Search({
+               enableLabel: true,
+               enableInfoWindow: false,
+               map: map
+            }, "");
+
+            s.startup();
+
+            
+            registry.byId("searchValue").on("click", doSearchValue);
+
+            function doSearchValue() {
+
+               //highlight symbol
+               var sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 12,
+                  new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,
+                     new Color([255, 0, 0]), 0.8),
+                  new Color([0, 0, 0, 0.35]));
+
+               //label text symbol
+               var ls = new TextSymbol().setColor(new Color([0, 0, 0, 0.9])).setFont(new Font("16px", Font.STYLE_NORMAL, Font.VARIANT_NORMAL, Font.WEIGHT_BOLD, "Arial")).setOffset(15, -5).setAlign(TextSymbol.ALIGN_START);
+
+               s.sources[0].highlightSymbol = sms; //set the symbol for the highlighted symbol
+               s.sources[0].labelSymbol = ls; //set the text symbol for the label
+
+               //If multiple results are found, it will default and select the first.
+
+               s.search("Mountain View");
+            }
+         }
+      );
+		
+	
+	
+
 	    });
 	}
 }
-</script>
-<div id="snapshot"></div>
 
+
+ 
+
+
+
+</script>
+
+
+<div class="tundra">
+   <div style="width: 400px; height: 400px; margin: 0;">
+      <div id="map">
+        
+      </div>
+   </div>
+</div>
 </body>
 </html>
